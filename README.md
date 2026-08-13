@@ -1,3 +1,4 @@
+<img width="927" height="1302" alt="화면 캡처 2026-08-13 171153" src="https://github.com/user-attachments/assets/0e1fd594-5dc9-4c60-9340-4b0377b84a3d" />
 📱 AI 영어 문법 도우미 (English Grammar Assistant)
 스마트폰 환경에 최적화된 모바일 중심의 반응형 AI 영어 문법 교정 웹 애플리케이션입니다. Google Gemini API를 활용하여 사용자가 입력한 영문장의 문법적 오류를 유연하고 실시간으로 분석하며, 정확한 수정본과 상세한 해설을 제공합니다.
 
