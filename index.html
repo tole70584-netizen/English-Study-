@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>영어 문법 도우미</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for mobile-friendly icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-10 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div class="bg-white/20 p-2 rounded-xl">
+                <i class="fa-solid fa-spell-check text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight">AI 영어 문법 교정기</h1>
+                <p class="text-xs text-indigo-200">모바일 맞춤형 문장 분석 서비스</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleApiKeyModal()" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded-lg transition active:scale-95 flex items-center space-x-1">
+                <i class="fa-solid fa-key"></i>
+                <span class="hidden sm:inline">API 키 설정</span>
+            </button>
+            <button onclick="clearAll()" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg transition active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-1"></i> 초기화
+            </button>
+        </div>
+    </header>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden fade-in">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-key text-indigo-600"></i>
+                    <span>Gemini API 키 설정</span>
+                </h3>
+                <button onclick="toggleApiKeyModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                사용하실 Gemini API 키를 입력해주세요. 입력된 키는 브라우저에만 안전하게 저장됩니다.
+            </p>
+            <div>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy..." 
+                    class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="saveApiKey()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl transition text-sm">
+                    저장하기
+                </button>
+                <button onclick="toggleApiKeyModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2.5 px-4 rounded-xl transition text-sm">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-lg w-full mx-auto p-4 space-y-4 mb-16">
+        <!-- Input Card -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <label for="sentenceInput" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
+                <span>검사할 영어 문장을 입력하세요</span>
+                <span id="charCount" class="text-xs font-normal text-slate-400">0/300자</span>
+            </label>
+            <div class="relative">
+                <textarea id="sentenceInput" rows="4" 
+                    class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-base transition resize-none"
+                    placeholder="예: He go to school everyday." maxlength="300" oninput="updateCharCount()"></textarea>
+            </div>
+            
+            <!-- Quick Chips / Examples -->
+            <div class="mt-3 flex flex-wrap gap-1.5">
+                <span class="text-xs text-slate-400 self-center mr-1">예시:</span>
+                <button onclick="setExample('She don\'t like apples.')" class="text-xs bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-2.5 py-1 rounded-full transition">She don't like...</button>
+                <button onclick="setExample('I have went to Seoul yesterday.')" class="text-xs bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-2.5 py-1 rounded-full transition">I have went...</button>
+                <button onclick="setExample('Thank you for help me.')" class="text-xs bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-2.5 py-1 rounded-full transition">Thank you for...</button>
+            </div>
+
+            <button onclick="checkGrammar()" id="checkBtn" 
+                class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>문법 검사 및 분석하기</span>
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center space-y-3 fade-in">
+            <div class="inline-block animate-spin text-indigo-600 text-2xl">
+                <i class="fa-solid fa-circle-notch"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-600">AI가 문장을 꼼꼼히 분석하고 있습니다...</p>
+        </div>
+
+        <div id="resultContainer" class="hidden space-y-4 fade-in">
+            
+            <!-- Status Card -->
+            <div id="statusCard" class="rounded-2xl p-4 shadow-sm border flex items-start space-x-3">
+                <div id="statusIcon" class="text-2xl mt-0.5"></div>
+                <div>
+                    <h3 id="statusTitle" class="font-bold text-base"></h3>
+                    <p id="statusDesc" class="text-sm text-slate-600 mt-0.5"></p>
+                </div>
+            </div>
+
+            <!-- Correction Card -->
+            <div id="correctionCard" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+                <div class="flex items-center justify-between text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                    <span>수정된 추천 문장</span>
+                    <span class="bg-indigo-50 px-2 py-0.5 rounded text-indigo-700 font-medium">Corrected</span>
+                </div>
+                <div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center justify-between">
+                    <p id="correctedText" class="font-medium text-slate-800 text-base select-all"></p>
+                    <button onclick="copyToClipboard()" class="bg-white hover:bg-indigo-100 text-indigo-600 p-2.5 rounded-lg shadow-sm transition active:scale-95" title="복사하기">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Explanation Card -->
+            <div id="explanationCard" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">어디가 왜 틀렸나요?</div>
+                <div id="explanationContent" class="text-sm text-slate-700 space-y-2 leading-relaxed"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white">
+        모바일 최적화 영어 문법 도우미 &copy; 2026
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        클립보드에 복사되었습니다!
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('apiKeyInput').value = savedKey;
+            }
+        });
+
+        function toggleApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveApiKey() {
+            const keyInput = document.getElementById('apiKeyInput').value.trim();
+            if (!keyInput) {
+                showToast('유효한 API 키를 입력해주세요.');
+                return;
+            }
+            localStorage.setItem('gemini_api_key', keyInput);
+            toggleApiKeyModal();
+            showToast('API 키가 성공적으로 저장되었습니다!');
+        }
+
+        function updateCharCount() {
+            const input = document.getElementById('sentenceInput');
+            const count = input.value.length;
+            document.getElementById('charCount').innerText = `${count}/300자`;
+        }
+
+        function setExample(text) {
+            document.getElementById('sentenceInput').value = text;
+            updateCharCount();
+        }
+
+        function clearAll() {
+            document.getElementById('sentenceInput').value = '';
+            document.getElementById('resultContainer').classList.add('hidden');
+            updateCharCount();
+            showToast('초기화되었습니다.');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('correctedText').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('클립보드에 복사되었습니다!');
+            } catch (err) {
+                showToast('복사에 실패했습니다.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        async function checkGrammar() {
+            const rawInput = document.getElementById('sentenceInput').value.trim();
+            if (!rawInput) {
+                showToast('검사할 영어 문장을 입력해주세요.');
+                return;
+            }
+
+            const userApiKey = localStorage.getItem('gemini_api_key');
+            if (!userApiKey) {
+                showToast('상단의 "API 키 설정" 버튼을 눌러 Gemini API 키를 먼저 입력해주세요.');
+                toggleApiKeyModal();
+                return;
+            }
+
+            document.getElementById('resultContainer').classList.add('hidden');
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userApiKey}`;
+
+            const systemPrompt = "당신은 전문 영어 문법 교정 AI입니다. 사용자가 입력한 영어 문장을 분석하여 어떠한 고정된 틀이나 규칙에 얽매이지 말고, 문법적 오류, 부자연스러운 표현, 어색한 시제나 수 일치 등이 있다면 그 내용을 자유롭고 정확하게 분석해주세요. 응답은 반드시 지정된 JSON 포맷으로만 반환해야 합니다.";
+            
+            const userQuery = `다음 영어 문장을 분석해주세요: "${rawInput}"`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            isCorrect: { type: "BOOLEAN", description: "문장에 오류나 어색한 부분이 없으면 true, 있으면 false" },
+                            statusTitle: { type: "STRING", description: "결과 상태 제목" },
+                            statusDesc: { type: "STRING", description: "전체적인 분석 요약 설명" },
+                            corrected: { type: "STRING", description: "수정된 최종 영문장" },
+                            explanations: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        part: { type: "STRING", description: "오류 유형 또는 항목 이름" },
+                                        desc: { type: "STRING", description: "왜 틀렸는지에 대한 구체적이고 상세한 설명" }
+                                    }
+                                },
+                                description: "틀린 이유에 대한 상세 설명 목록"
+                            }
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const jsonText = candidate.content.parts[0].text;
+                    const data = JSON.parse(jsonText);
+                    document.getElementById('loadingIndicator').classList.add('hidden');
+                    document.getElementById('resultContainer').classList.remove('hidden');
+                    renderResult(data);
+                } else {
+                    throw new Error('Invalid response structure');
+                }
+
+            } catch (error) {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                showToast('분석 중 오류가 발생했습니다. API 키나 네트워크를 확인해주세요.');
+            }
+        }
+
+        function renderResult(data) {
+            const statusCard = document.getElementById('statusCard');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusDesc = document.getElementById('statusDesc');
+            const correctionCard = document.getElementById('correctionCard');
+            const correctedText = document.getElementById('correctedText');
+            const explanationContent = document.getElementById('explanationContent');
+
+            if (!data.isCorrect) {
+                statusCard.className = "rounded-2xl p-4 shadow-sm border bg-amber-50 border-amber-200 flex items-start space-x-3";
+                statusIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i>';
+                correctionCard.classList.remove('hidden');
+            } else {
+                statusCard.className = "rounded-2xl p-4 shadow-sm border bg-emerald-50 border-emerald-200 flex items-start space-x-3";
+                statusIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                correctionCard.classList.add('hidden');
+            }
+
+            statusTitle.innerText = data.statusTitle || "분석 완료";
+            statusDesc.innerText = data.statusDesc || "";
+            correctedText.innerText = data.corrected || "";
+
+            explanationContent.innerHTML = '';
+            if (data.explanations && data.explanations.length > 0) {
+                data.explanations.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-50 rounded-xl border border-slate-100";
+                    div.innerHTML = `<span class="font-semibold text-indigo-600 block text-xs mb-1">${item.part || '참고'}</span><span class="text-slate-600">${item.desc || ''}</span>`;
+                    explanationContent.appendChild(div);
+                });
+            } else {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-slate-50 rounded-xl border border-slate-100";
+                div.innerHTML = `<span class="text-slate-600">발견된 오류가 없습니다.</span>`;
+                explanationContent.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>
